@@ -104,6 +104,8 @@ void generate_key();
 int register_key(void);
 void create_client(int &sock,struct sockaddr_in &addr);
 void create_server();
+void accept_conn();
+
 void Nonce_func(void);
 
 int main(int argc, char *argv[]) {
@@ -134,16 +136,15 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    printf("\nContinue with sending message(y/n): ");
-    scanf("%c",&continue_ops);
-
-    if(continue_ops == 'n'){
-        close(kdc_sock);
+    // printf("\nContinue with sending message(y/n): ");
+    // scanf("%c",&continue_ops);
+    // 
+    // if(continue_ops == 'n'){
+    if(0){
         return 0;
     }
 
     if(argvs.SR){
-
         //STEP 1
         create_client(kdc_sock,kdc_addr);
         strcpy(buff,argvs.my_name );
@@ -166,14 +167,17 @@ int main(int argc, char *argv[]) {
 
         printf("Sending to KDC %s\n", buff);
         send(kdc_sock , buff, strlen(buff ),0 );
+        memset(buff,0,MAX);
+        printf("reading from kdc\n");
         read( kdc_sock , buff, 1024); 
+        printf("Received for 305 %s\n", buff);
         close(kdc_sock);
 
-        printf("Received for 305 %s\n", buff);
 
         sig_parser(buff);
 
         //STEP 2:
+        // system("PAUSE");
 
         strcpy(buff,"309#" );
         strcat(buff, info.ocipher );
@@ -182,8 +186,12 @@ int main(int argc, char *argv[]) {
         strcat(buff,"#" );
 
         //you_addr send
+        printf("Creating client socket %s\n",buff );
         create_client(you_sock,you_addr);
+
+        // return 0;
         send(you_sock , buff, strlen(buff ) ,0);
+        memset(buff,0,MAX);
         read(you_sock , buff, 1024); 
 
         printf("Received for 309 - 310 %s\n", buff);
@@ -196,7 +204,7 @@ int main(int argc, char *argv[]) {
         strcat(buff,"#");
         strcat(buff, to_string(argvs.Nonce+1).c_str()  );
         strcat(buff,"#");
-        encr_base( buff, buff2,argvs.my_key ,strlen(buff) );
+        encr_base( buff, buff2, info.Ks ,strlen(buff) );
 
 
         strcpy(buff, "311#");
@@ -205,10 +213,23 @@ int main(int argc, char *argv[]) {
         strcat(buff, argvs.my_name );
         strcat(buff,"#" );
 
+        // close(you_sock );
+        // create_client(you_sock,you_addr);
+        printf("Sent to B message %s\n", buff );
         send(you_sock , buff, strlen(buff ) ,0);
+        memset(buff,0,MAX);
+
+        read(you_sock , buff, 1024); 
+        printf("Got from B message %s\n", buff );
+        
+        close(you_sock);
     }
 
     else{
+        create_server();
+        printf("R created server and listening %s\n",  "...");
+        memset(buff,0,MAX);
+
         read(you_sock, buff,1024);
         printf("Received 309 - %s\n", buff);
         sig_parser(buff);
@@ -222,7 +243,7 @@ int main(int argc, char *argv[]) {
         Nonce_func();
         strcat(buff,to_string(argvs.Nonce).c_str());//Nonce
         strcat(buff,"#" );
-        encr_base(buff,buff2,argvs.my_key ,strlen(buff) );
+        encr_base(buff,buff2, info.Ks ,strlen(buff) );
         
         strcpy(buff, "310#");
         strcat(buff, buff2 );
@@ -230,12 +251,22 @@ int main(int argc, char *argv[]) {
         strcat(buff, argvs.my_name );
         strcat(buff,"#" );
 
+        printf("Sending for 310 %s\n",buff );
         send(you_sock , buff, strlen(buff ),0 );
 
+        // close(you_sock );
+        // accept_conn();
+
+        memset(buff,0,MAX);
         read(you_sock, buff,1024);
         printf("Got 311 end  %s\n", buff);
         sig_parser(buff);
-        printf("Secret Message is%s\n",info.dec_message );
+        printf("Secret Message is: %s\n",info.dec_message );
+        strcpy(buff,"312#Successfull#");
+        send(you_sock , buff, strlen(buff ),0 );
+        printf("sent back 312 %s\n",buff );
+        close(you_sock);
+
     }
 
 
@@ -277,7 +308,7 @@ int parser(int argc, char *argv[]){
     }
     else if(!strcmp(argv[4],"R")){
         argvs.SR  = 0;
-        argvs.my_port = 8011;
+        argvs.my_port = 8012;
 
     	if(strcmp(argv[5],"-s"))return 5;
     	if(strcmp(argv[7],"-o"))return 7;
@@ -339,42 +370,51 @@ int sig_parser(char *sig){
     }
     else{
         cpy_str(sig, info.cipher);
+        // printf("Cipher received is %s\n", info.cipher );
+
     } 
     
-    if(info.sig_num == 306){
-        cpy_str(sig, info.ocipher);
-    }
-    if(info.sig_num == 309){
-        cpy_str(sig, info.you_ID);
-    }
+
+
     if(info.sig_num == 306 || info.sig_num == 309){
         unbase_decr(info.cipher ,info.dec_cipher, argvs.my_key,strlen (  info.cipher) );
+        printf("%s decipher with %s is %s -fin>\n", info.cipher , argvs.my_key, info.dec_cipher );
         char *decipher = info.dec_cipher;
         cpy_str(decipher, info.Ks);
-        cpy_str(decipher, info.my_ID);
         cpy_str(decipher, info.you_ID);
+        cpy_str(decipher, info.my_ID);
         cpy_str(decipher, info.extra);
-        if (atoi(info.extra) != argvs.Nonce ){
-            printf("Nonce Mismatch in 306\n");
-            exit(0);
-        }
+        argvs.Nonce = atoi(info.extra);
         cpy_str(decipher, info.you_IP);
         cpy_str(decipher, info.extra);
-        info.my_port=atoi(info.extra);
+        info.you_port=atoi(info.extra);
+        if(info.sig_num == 306){
+            cpy_str(decipher, info.ocipher);
+            printf("decrypted signal %s\n", info.ocipher);
 
-        printf("decrypted signal%s\n", info.dec_cipher);
+        you_addr.sin_family = AF_INET; 
+    // you_addr.sin_addr.s_addr = htonl(INADDR_ANY); 
+        you_addr.sin_addr.s_addr = inet_addr(info.you_IP);
+        you_addr.sin_port = htons(info.you_port); 
+            
+        }
+        if(info.sig_num == 309){
+            cpy_str(sig, info.you_ID);
+        }
+
 
     }  
 
     else if(info.sig_num == 310){
         cpy_str(sig, info.my_ID); 
         unbase_decr(info.cipher ,info.dec_cipher, info.Ks,strlen (info.cipher) );
+        printf("%s decipher with %s is %s -fin>\n", info.cipher , info.Ks , info.dec_cipher );
         char *decipher = info.dec_cipher;
         cpy_str(decipher, info.my_ID);
         cpy_str(decipher, info.you_ID);
         cpy_str(decipher, info.extra);
-        if (atoi(info.extra) != argvs.Nonce+1 ){
-            printf("Nonce Mismatch in 306\n");
+        if (atoi(info.extra) != argvs.Nonce ){
+            printf("Nonce Mismatch in 310 %d %s\n" , argvs.Nonce, info.extra);
             exit(0);
         }
         cpy_str(decipher,info.extra);
@@ -382,6 +422,7 @@ int sig_parser(char *sig){
     }
     else if(info.sig_num == 311 ){
         cpy_str(sig, info.my_ID); 
+        printf("%s decipher with %s is %s -fin>\n", info.cipher , info.Ks , info.dec_cipher );
         unbase_decr(info.cipher ,info.dec_cipher, info.Ks,strlen (info.cipher) );
         char *decipher = info.dec_cipher;
         cpy_str(decipher, info.dec_message );
@@ -396,10 +437,21 @@ int sig_parser(char *sig){
 }
 
 void generate_key(void){
-    for (int i = 0; i < 12; ++i)
-    {
-        argvs.my_key[i] = choice[rand()%62];
+    if(argvs.SR ){
+        for (int i = 0; i < 12; ++i)
+        {
+            argvs.my_key[i] = 'A'+i;
+        }
     }
+    else{
+        for (int i = 0; i < 12; ++i){
+            argvs.my_key[i] = 'Z'-i;
+        }   
+    }
+    // for (int i = 0; i < 12; ++i)
+    // {
+    //     argvs.my_key[i] = choice[rand()%62];
+    // }
     for (int i = 12; i < 16; ++i)
     {
         argvs.my_key[i] = '#';
@@ -442,17 +494,17 @@ void  create_client(int &sock,struct sockaddr_in &addr){
         trace("socket creation failed");
         exit(EXIT_FAILURE); 
     } 
-    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, 
-                                                  &opt, sizeof(opt))) 
-    { 
-        perror("setsockopt"); 
-        exit(EXIT_FAILURE); 
-    } 
-    if ( bind(sock, (const struct sockaddr *)&my_addr,addr_len) < 0 ) 
-    { 
-        perror("bind failed");
-        exit(EXIT_FAILURE); 
-    }
+    // if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, 
+    //                                               &opt, sizeof(opt))) 
+    // { 
+    //     perror("setsockopt"); 
+    //     exit(EXIT_FAILURE); 
+    // } 
+    // if ( bind(sock, (const struct sockaddr *)&my_addr,addr_len) < 0 ) 
+    // { 
+    //     perror("bind failed");
+    //     exit(EXIT_FAILURE); 
+    // }
 
     if (connect(sock, (struct sockaddr *)&addr, addr_len) < 0) 
     { 
@@ -462,18 +514,18 @@ void  create_client(int &sock,struct sockaddr_in &addr){
 }
 
 void  create_server(){
-    if ( (sock = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) { 
+    if ( (my_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) { 
         perror("socket creation failed"); 
         trace("socket creation failed");
         exit(EXIT_FAILURE); 
     } 
 
-    if ( bind(sock, (const struct sockaddr *)&my_addr,addr_len) < 0 ){ 
+    if ( bind(my_sock, (const struct sockaddr *)&my_addr,addr_len) < 0 ){ 
         perror("bind failed");
         exit(EXIT_FAILURE); 
     }
 
-    if (listen(sock, 5) != 0){ 
+    if (listen(my_sock, 5) != 0){ 
         printf("Listen failed...\n"); 
         trace("Listen failed...\n");
         exit(0); 
@@ -482,6 +534,17 @@ void  create_server(){
         printf("Server listening..\n"); 
         trace("Server listening..\n");
     }
+    you_sock = accept(my_sock,(sockaddr*)&you_addr,(socklen_t*)&addr_len);
+    if(you_sock < 0){
+        cout<<"Connect failed"<<"\n";
+        trace("Connect failed");
+    }
+    else{
+        cout<<"Server connected to new client"<<"\n";
+        trace("Server connected to new client");
+    }
+}
+void accept_conn(){
     you_sock = accept(sock,(sockaddr*)&you_addr,(socklen_t*)&addr_len);
     if(you_sock < 0){
         cout<<"Connect failed"<<"\n";

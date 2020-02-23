@@ -18,13 +18,15 @@ server: client.cpp
 	@echo "client.cpp compiled successfully\n"
 	@echo "Sending  Message @Sender Node ..."
 	@echo "-------------------------------------\n"
-	@./client -n myname -m S -o othername -i plain.txt -a 192.168.0.9 -p 1235
+	@./client -n myname -m S -o othername -i plain.txt -a 127.0.0.1 -p 1235
 	@echo "-------------------------------------\n"
 
 c2:
 	@echo "Receiving Message @Receiver Node ..."
 	@echo "-------------------------------------\n"
-	@./client -n othername -m R -s cipher.txt -o out.txt -a 127.0.0.1 -p 8080
+	@./client -n othername -m R -s cipher.txt -o out.txt -a 192.168.0.9 -p 1235
 	@echo "-------------------------------------\n"
 
+c3:
+	@./client -n myname -m S -o othername -i plain.txt -a 127.0.0.1 -p 1235
 	

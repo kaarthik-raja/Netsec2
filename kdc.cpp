@@ -118,7 +118,7 @@ unsigned char *unbase64(unsigned char *input, int length,int rl)
     BIO_read(bmem, buffer, length);
     
     BIO_free_all(bmem);
-    
+
     return buffer;
 }
 
@@ -602,18 +602,21 @@ void gen_key(char* buff)
     trace(text,text_len);
     */
     //remove
+    /*
     trace(encr,len);
     text_len = encr_base(encr,text,key_a,len);
     trace(text,text_len);
+    */
     
-
-    temp_len = unbase_decr(text,temp,key_a,text_len);
+    temp_len = unbase_decr(encr,temp,key_a,len);
     trace(temp,temp_len);
     //remove
+    /*
     for(int i=0;i<temp_len;i++)
     {
         if(temp[i] == '$') temp[i]='#';
     }
+    */
     trace(temp);
 
     string ida="",idb="",nonce1="";
@@ -795,6 +798,7 @@ int main(int argc,char* argv[])
     int sockfd;
     bool buffer[MAX];
     freopen(outfile, "a", stderr);
+    
     trace("Starting new Log: \n\n\n\n");
     struct sockaddr_in servaddr, cliaddr; 
     // Creating socket file descriptor 
@@ -809,7 +813,7 @@ int main(int argc,char* argv[])
       
     // Filling server information 
     servaddr.sin_family = AF_INET; 
-    servaddr.sin_addr.s_addr = htonl(INADDR_ANY); 
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
     servaddr.sin_port = htons(port_num); 
     //trace(port_num);
       
@@ -850,9 +854,10 @@ int main(int argc,char* argv[])
         }
         build_ds(pwdfile);
         trace("Build ds");
+        memset(buff,0,MAX);
 
         read(connfd, buff, sizeof(buff));
-        printf("Received %s\n",buff);
+        printf("Read -> %s || \n", buff);
         trace("Read data");
         if(buff[2] == '1')
         {
@@ -869,7 +874,7 @@ int main(int argc,char* argv[])
             trace("Sent packet as: ");
             trace(buff);
         }
-
+        printf("Write -> %s ||\n",buff );
         write_ds(pwdfile);
         trace("Wrote ds");
     }
