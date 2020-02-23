@@ -1,0 +1,21 @@
+Script started on 2020-02-23 18:58:30+0530
+]0;raja@krmv: ~/Study/SEMVIII_Y4/Net_Sec/Ass2[01;32mraja@krmv[00m:[01;34m~/Study/SEMVIII_Y4/Net_Sec/Ass2[00m$ make c2
+Receiving Message @Receiver Node ...
+-------------------------------------
+
+me->kdc 301#127.0.0.1#8012#ZYXWVUTSRQPO#####othername#
+kdc->me 302#othername
+Successfull Registration of name: othername 
+Sleeping 3s
+sending secret key to othername : #309#E_kb[9QdiEHT9#myname#othername#719394#127.0.0.1#8010]#myname#
+Secret Key received for communication : 9QdiEHT9
+othername -> myname : 310#E_ka[myname#othername#719394#719395#]#othername#
+myname -> othername : 311#E_ks[Hello World#719396#]
+othername -> myname : 312#Successfull
+Message is: Hello World
+-------------------------------------
+
+]0;raja@krmv: ~/Study/SEMVIII_Y4/Net_Sec/Ass2[01;32mraja@krmv[00m:[01;34m~/Study/SEMVIII_Y4/Net_Sec/Ass2[00m$ exit
+exit
+
+Script done on 2020-02-23 18:59:00+0530

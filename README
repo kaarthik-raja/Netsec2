@@ -1,6 +1,0 @@
-NO BUGS OR ERORS in the Code
-Simple type make and follow the command given by the assignemnt pdf
-	make
-	./myenc -p <oper> -a <alg> -m <mode> -k <keysize> -i <inpfile> -o <outfile>
-
-Note i didnt include the decryption file because it matches with the plaintext file provided , i just included one sample

@@ -1,0 +1,34 @@
+Script started on 2020-02-23 18:57:22+0530
+]0;raja@krmv: ~/Study/SEMVIII_Y4/Net_Sec/Ass2[01;32mraja@krmv[00m:[01;34m~/Study/SEMVIII_Y4/Net_Sec/Ass2[00m$ exitmake kdc
+g++ -o kdc kdc.cpp -lssl -lcrypto
+kdc.cpp compiled successfully
+
+./kdc -p 1235 -o log.txt -f pwd.txt 
+
+]0;raja@krmv: ~/Study/SEMVIII_Y4/Net_Sec/Ass2[01;32mraja@krmv[00m:[01;34m~/Study/SEMVIII_Y4/Net_Sec/Ass2[00m$ make kdc[4Pexitmake kdcserver[3Pkdcifconfigmake servergit push -u origin master [13Premote -vpush -u origin master [4Pcommit -m "client"[12Padd -Apush -u origin master [3Pll[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[15Pifconfig./kdc -p 1237 -o log.txt -f pwd.txt5[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cmake kdc[K./kdc -p 1235 -o log.txt -f pwd.txt
+Server listening..
+Starts TPC server to listen on port 1235
+Wait for messages from clients..
+Type Ctrl-C to finally quit
+Server connected to new client
+Read -> 301#127.0.0.1#8012#ZYXWVUTSRQPO#####othername# || 
+Write -> 302#othername ||
+Wait for messages from clients..
+Type Ctrl-C to finally quit
+Server connected to new client
+Read -> 301#127.0.0.1#8010#ABCDEFGHIJKL#####myname# || 
+Write -> 302#myname ||
+Wait for messages from clients..
+Type Ctrl-C to finally quit
+Server connected to new client
+Read -> 305#Zi2+7qAfUZlj6eqABhJCe/H1awDTFGFspjnD2xaxRSUA#myname || 
+Write -> 306#owa39twThYZFFD4bGHrG0vljXQWfrQpSwxoxJUEEfdgyiTOMneRfMDXhOGXRwDcd
+AT2rSDB9ad5wmjwGHjnHta6nNC5NFDM3rhhDJ+8wjA77phTZ31DvP/eK8/09zguL
+aAE39MgjQhDpmWX+VgMe952d+Svp+KBq8beT1WXQ2fUA ||
+Wait for messages from clients..
+Type Ctrl-C to finally quit
+^C
+]0;raja@krmv: ~/Study/SEMVIII_Y4/Net_Sec/Ass2[01;32mraja@krmv[00m:[01;34m~/Study/SEMVIII_Y4/Net_Sec/Ass2[00m$ exit
+exit
+
+Script done on 2020-02-23 18:58:57+0530

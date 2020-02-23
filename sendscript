@@ -1,0 +1,37 @@
+Script started on 2020-02-23 18:57:56+0530
+]0;raja@krmv: ~/Study/SEMVIII_Y4/Net_Sec/Ass2[01;32mraja@krmv[00m:[01;34m~/Study/SEMVIII_Y4/Net_Sec/Ass2[00m$ make client
+g++ -o client client.cpp -lssl -lcrypto
+[01m[Kclient.cpp:[m[K In function ‘[01m[Kint sig_parser(char*)[m[K’:
+[01m[Kclient.cpp:435:65:[m[K [01;35m[Kwarning: [m[KISO C++ forbids converting a string constant to ‘[01m[Kchar*[m[K’ [[01;35m[K-Wwrite-strings[m[K]
+         write_tof( argvs.inpf ,info.cipher, "__Key__" , info.Ks [01;35m[K)[m[K;
+                                                                 [01;35m[K^[m[K
+[01m[Kclient.cpp:440:55:[m[K [01;35m[Kwarning: [m[KISO C++ forbids converting a string constant to ‘[01m[Kchar*[m[K’ [[01;35m[K-Wwrite-strings[m[K]
+         write_tof( argvs.outf ,info.dec_message,"","" [01;35m[K)[m[K;
+                                                       [01;35m[K^[m[K
+[01m[Kclient.cpp:440:55:[m[K [01;35m[Kwarning: [m[KISO C++ forbids converting a string constant to ‘[01m[Kchar*[m[K’ [[01;35m[K-Wwrite-strings[m[K]
+client.cpp compiled successfully
+
+./client -n myname -m S -o othername -i plain.txt -a 127.0.0.1 -p 1235
+]0;raja@krmv: ~/Study/SEMVIII_Y4/Net_Sec/Ass2[01;32mraja@krmv[00m:[01;34m~/Study/SEMVIII_Y4/Net_Sec/Ass2[00m$ make c1
+Sending Message @Sender Node ...
+-------------------------------------
+
+me->kdc 301#127.0.0.1#8010#ABCDEFGHIJKL#####myname#
+kdc->me 302#myname
+Successfull Registration of name: myname 
+Sleeping 5s
+myname -> kdc 305#E_ka[myname#othername#719394]#myname
+kdc -> myname 306#E_ka[9QdiEHT9#myname#othername#719394#127.0.0.1#8012#F0XgnGEP9VgQdU8AAIk87uG/EyEF58IITj3B49cfH88QigqhM6IzKZ5XZsWC3Ul4
+AA==]
+Secret Key received for communication : 9QdiEHT9
+myname -> othername 309#F0XgnGEP9VgQdU8AAIk87uG/EyEF58IITj3B49cfH88QigqhM6IzKZ5XZsWC3Ul4
+AA==#myname#
+othername -> myname 310#E_ks[myname#othername#719394#719395#]
+myname -> othername 311#E_ks[Hello World#719396#]#myname#
+othername -> myname 312#Successfull
+-------------------------------------
+
+]0;raja@krmv: ~/Study/SEMVIII_Y4/Net_Sec/Ass2[01;32mraja@krmv[00m:[01;34m~/Study/SEMVIII_Y4/Net_Sec/Ass2[00m$ exit
+exit
+
+Script done on 2020-02-23 18:59:03+0530
