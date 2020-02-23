@@ -1,10 +1,9 @@
-all:  clean  server kdc
+all:  clean  client kdc
 	@echo "client.cpp complied and run"
-
-
 
 clean:
 	rm client
+	rm kdc
 	echo "Removing the executables present"
 
 kdc: kdc.cpp
@@ -13,20 +12,21 @@ kdc: kdc.cpp
 	@echo "./kdc -p 1235 -o log.txt -f pwd.txt \n"
 
 
-server: client.cpp
+client: client.cpp
 	g++ -o client client.cpp -lssl -lcrypto
 	@echo "client.cpp compiled successfully\n"
-	@echo "Sending  Message @Sender Node ..."
-	@echo "-------------------------------------\n"
-	@./client -n myname -m S -o othername -i plain.txt -a 127.0.0.1 -p 1235
-	@echo "-------------------------------------\n"
+	@echo "./client -n myname -m S -o othername -i plain.txt -a 127.0.0.1 -p 1235"
 
 c2:
 	@echo "Receiving Message @Receiver Node ..."
 	@echo "-------------------------------------\n"
-	@./client -n othername -m R -s cipher.txt -o out.txt -a 192.168.0.9 -p 1235
+	@./client -n othername -m R -s cipher.txt -o out.txt -a 127.0.0.1 -p 1235
 	@echo "-------------------------------------\n"
 
-c3:
+c1:
+	@echo "Sending Message @Sender Node ..."
+	@echo "-------------------------------------\n"
 	@./client -n myname -m S -o othername -i plain.txt -a 127.0.0.1 -p 1235
+	@echo "-------------------------------------\n"
+
 	

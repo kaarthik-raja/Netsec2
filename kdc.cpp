@@ -835,12 +835,15 @@ int main(int argc,char* argv[])
         printf("Server listening..\n"); 
         trace("Server listening..\n");
     }
+    cout<<"Starts TPC server to listen on port "<<port_num<<"\n";
     
     unsigned int len = sizeof(cliaddr);
     char buff[MAX];
 
     while(1)
     {
+        cout<<"Wait for messages from clients.."<<"\n";
+        cout<<"Type Ctrl-C to finally quit"<<"\n";
         int connfd = accept(sockfd,(sockaddr*)&cliaddr,&len);
         if(connfd < 0)
         {

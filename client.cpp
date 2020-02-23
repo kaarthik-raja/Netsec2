@@ -23,6 +23,7 @@ using namespace std;
 
 #define MAX 1000
 #define G_MY_IP "127.0.0.1"
+// #define G_MY_IP "192.168.0.9"
 #define ff first
 #define ss second
 #define pb push_back
@@ -105,6 +106,7 @@ int register_key(void);
 void create_client(int &sock,struct sockaddr_in &addr);
 void create_server();
 void accept_conn();
+void write_tof(char *file,char *mess , char *mess2 ,char *mess3);
 
 void Nonce_func(void);
 
@@ -136,15 +138,17 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    // printf("\nContinue with sending message(y/n): ");
-    // scanf("%c",&continue_ops);
-    // 
-    // if(continue_ops == 'n'){
-    if(0){
-        return 0;
-    }
+
 
     if(argvs.SR){
+        // printf("\nContinue with sending message(y/n): ");
+        // scanf("%c",&continue_ops);
+        // if(continue_ops == 'n'){
+        //     return 0;
+        // }
+        printf("Sleeping 5s\n");
+        sleep(5);
+
         //STEP 1
         create_client(kdc_sock,kdc_addr);
         strcpy(buff,argvs.my_name );
@@ -156,25 +160,22 @@ int main(int argc, char *argv[]) {
         string s = to_string(argvs.Nonce);
         strcat(buff,s.c_str());//Nonce
         // strcat(buff,"#" );
-        printf("E_ka %s\n",buff );
+        printf("%s -> kdc 305#E_ka[%s]#%s\n", argvs.my_name ,buff, argvs.my_name );
         encr_base(buff,buff2,argvs.my_key ,strlen(buff) );
-        printf("encrpyt %s -> %s -- \n",buff,buff2 );
         strcpy(buff,"305#" );
         strcat(buff, buff2 );
         strcat(buff,"#" );
         strcat(buff,argvs.my_name );
         // strcat(buff,"#" );
 
-        printf("Sending to KDC %s\n", buff);
         send(kdc_sock , buff, strlen(buff ),0 );
         memset(buff,0,MAX);
-        printf("reading from kdc\n");
         read( kdc_sock , buff, 1024); 
-        printf("Received for 305 %s\n", buff);
         close(kdc_sock);
 
 
         sig_parser(buff);
+
 
         //STEP 2:
         // system("PAUSE");
@@ -186,15 +187,14 @@ int main(int argc, char *argv[]) {
         strcat(buff,"#" );
 
         //you_addr send
-        printf("Creating client socket %s\n",buff );
         create_client(you_sock,you_addr);
 
         // return 0;
+        printf("%s -> %s %s\n",argvs.my_name,argvs.you_name ,buff );
         send(you_sock , buff, strlen(buff ) ,0);
         memset(buff,0,MAX);
         read(you_sock , buff, 1024); 
 
-        printf("Received for 309 - 310 %s\n", buff);
 
         //Step 3:
         sig_parser(buff);
@@ -206,7 +206,7 @@ int main(int argc, char *argv[]) {
         strcat(buff,"#");
         encr_base( buff, buff2, info.Ks ,strlen(buff) );
 
-
+        printf("%s -> %s 311#E_ks[%s]#%s#\n",argvs.my_name,argvs.you_name  ,buff,argvs.my_name );
         strcpy(buff, "311#");
         strcat(buff, buff2 );
         strcat(buff,"#" );
@@ -215,23 +215,27 @@ int main(int argc, char *argv[]) {
 
         // close(you_sock );
         // create_client(you_sock,you_addr);
-        printf("Sent to B message %s\n", buff );
+
         send(you_sock , buff, strlen(buff ) ,0);
         memset(buff,0,MAX);
 
         read(you_sock , buff, 1024); 
-        printf("Got from B message %s\n", buff );
-        
+        printf("%s -> %s %s\n",argvs.you_name ,argvs.my_name , buff );
         close(you_sock);
     }
 
     else{
+        // printf("\nContinue with receiving message(y/n): ");
+        // scanf("%c",&continue_ops);
+        // if(continue_ops == 'n'){
+        //     return 0;
+        // }
+        printf("Sleeping 3s\n");
+        sleep(3);
         create_server();
-        printf("R created server and listening %s\n",  "...");
         memset(buff,0,MAX);
 
         read(you_sock, buff,1024);
-        printf("Received 309 - %s\n", buff);
         sig_parser(buff);
 
         strcpy(buff,info.you_ID );
@@ -244,14 +248,14 @@ int main(int argc, char *argv[]) {
         strcat(buff,to_string(argvs.Nonce).c_str());//Nonce
         strcat(buff,"#" );
         encr_base(buff,buff2, info.Ks ,strlen(buff) );
-        
+        printf("%s -> %s : 310#E_ka[%s]#%s#\n", argvs.my_name , info.you_ID , buff , argvs.my_name );
+
         strcpy(buff, "310#");
         strcat(buff, buff2 );
         strcat(buff,"#" );
         strcat(buff, argvs.my_name );
         strcat(buff,"#" );
 
-        printf("Sending for 310 %s\n",buff );
         send(you_sock , buff, strlen(buff ),0 );
 
         // close(you_sock );
@@ -259,13 +263,13 @@ int main(int argc, char *argv[]) {
 
         memset(buff,0,MAX);
         read(you_sock, buff,1024);
-        printf("Got 311 end  %s\n", buff);
         sig_parser(buff);
-        printf("Secret Message is: %s\n",info.dec_message );
-        strcpy(buff,"312#Successfull#");
+        strcpy(buff, "312#Successfull");
         send(you_sock , buff, strlen(buff ),0 );
-        printf("sent back 312 %s\n",buff );
+        printf("%s -> %s : %s\n", argvs.my_name , info.you_ID, buff );
         close(you_sock);
+        close(my_sock);
+        printf("Message is: %s\n", info.dec_message);
 
     }
 
@@ -365,7 +369,10 @@ int sig_parser(char *sig){
         int i;
         for(i=0;sig[i]!='#';i++ );
         sig[i]='\0';
-        printf("Signal compared %s\n",sig );
+        if(!strcmp(sig ,argvs.my_name))
+            printf("Successfull Registration of name: %s \n", argvs.my_name);
+        else
+            printf("Failed KDC Registration %s %s\n", argvs.my_name,sig);
         return strcmp(sig ,argvs.my_name);
     }
     else{
@@ -378,7 +385,9 @@ int sig_parser(char *sig){
 
     if(info.sig_num == 306 || info.sig_num == 309){
         unbase_decr(info.cipher ,info.dec_cipher, argvs.my_key,strlen (  info.cipher) );
-        printf("%s decipher with %s is %s -fin>\n", info.cipher , argvs.my_key, info.dec_cipher );
+
+        if(info.sig_num == 306)      printf("kdc -> %s 306#E_ka[%s]\n", argvs.my_name ,info.dec_cipher  );
+        else printf("sending secret key to %s : #309#E_kb[%s]#%s\n", argvs.my_name , info.dec_cipher, sig );
         char *decipher = info.dec_cipher;
         cpy_str(decipher, info.Ks);
         cpy_str(decipher, info.you_ID);
@@ -390,17 +399,18 @@ int sig_parser(char *sig){
         info.you_port=atoi(info.extra);
         if(info.sig_num == 306){
             cpy_str(decipher, info.ocipher);
-            printf("decrypted signal %s\n", info.ocipher);
+            // printf("decrypted signal %s\n", info.ocipher);
 
-        you_addr.sin_family = AF_INET; 
-    // you_addr.sin_addr.s_addr = htonl(INADDR_ANY); 
-        you_addr.sin_addr.s_addr = inet_addr(info.you_IP);
-        you_addr.sin_port = htons(info.you_port); 
+            you_addr.sin_family = AF_INET; 
+        // you_addr.sin_addr.s_addr = htonl(INADDR_ANY); 
+            you_addr.sin_addr.s_addr = inet_addr(info.you_IP);
+            you_addr.sin_port = htons(info.you_port); 
             
         }
         if(info.sig_num == 309){
             cpy_str(sig, info.you_ID);
         }
+        printf("Secret Key received for communication : %s\n", info.Ks );
 
 
     }  
@@ -408,7 +418,7 @@ int sig_parser(char *sig){
     else if(info.sig_num == 310){
         cpy_str(sig, info.my_ID); 
         unbase_decr(info.cipher ,info.dec_cipher, info.Ks,strlen (info.cipher) );
-        printf("%s decipher with %s is %s -fin>\n", info.cipher , info.Ks , info.dec_cipher );
+        printf("%s -> %s 310#E_ks[%s]\n", argvs.you_name ,argvs.my_name ,info.dec_cipher );
         char *decipher = info.dec_cipher;
         cpy_str(decipher, info.my_ID);
         cpy_str(decipher, info.you_ID);
@@ -422,10 +432,13 @@ int sig_parser(char *sig){
     }
     else if(info.sig_num == 311 ){
         cpy_str(sig, info.my_ID); 
-        printf("%s decipher with %s is %s -fin>\n", info.cipher , info.Ks , info.dec_cipher );
+        write_tof( argvs.inpf ,info.cipher, "__Key__" , info.Ks );
         unbase_decr(info.cipher ,info.dec_cipher, info.Ks,strlen (info.cipher) );
+        printf("%s -> %s : 311#E_ks[%s]\n", info.you_ID , argvs.my_name , info.dec_cipher );
         char *decipher = info.dec_cipher;
         cpy_str(decipher, info.dec_message );
+        write_tof( argvs.outf ,info.dec_message,"","" );
+
         cpy_str(decipher, info.extra);
         if (atoi(info.extra) != argvs.Nonce+1 ){
             printf("Nonce Mismatch in 311\n");
@@ -435,7 +448,14 @@ int sig_parser(char *sig){
     }
     return  0;
 }
-
+void write_tof(char *file,char *mess , char *mess2, char *mess3 ){
+        FILE *fOUT;
+        fOUT = fopen(file, "w");
+        fprintf(fOUT, "%s\n",mess );
+        fprintf(fOUT, "%s\n",mess2 );
+        fprintf(fOUT, "%s\n",mess3 );
+        fclose(fOUT);
+}
 void generate_key(void){
     if(argvs.SR ){
         for (int i = 0; i < 12; ++i)
@@ -457,7 +477,7 @@ void generate_key(void){
         argvs.my_key[i] = '#';
     }
     argvs.my_key[16] = '\0';
-    printf("%s\n",argvs.my_key);
+    // printf("%s\n",argvs.my_key);
 
 }
 
@@ -476,12 +496,10 @@ int register_key(void){
     strcat(buff,argvs.my_name);
     strcat(buff,"#");
 
-    printf("Sending to KDC %s\n",buff );
-
+    printf("me->kdc %s\n", buff );
     send(kdc_sock, buff, strlen(buff),0);
-    printf("Sent\n");
     read(kdc_sock,buff ,1024);
-    printf("Received %s\n",buff);
+    printf("kdc->me %s\n", buff );
 
     close(kdc_sock);
     return sig_parser(buff);
@@ -531,8 +549,8 @@ void  create_server(){
         exit(0); 
     } 
     else{
-        printf("Server listening..\n"); 
-        trace("Server listening..\n");
+        // printf("Server listening..\n"); 
+        // trace("Server listening..\n");
     }
     you_sock = accept(my_sock,(sockaddr*)&you_addr,(socklen_t*)&addr_len);
     if(you_sock < 0){
@@ -540,8 +558,8 @@ void  create_server(){
         trace("Connect failed");
     }
     else{
-        cout<<"Server connected to new client"<<"\n";
-        trace("Server connected to new client");
+        // cout<<"Server connected to new client"<<"\n";
+        // trace("Server connected to new client");
     }
 }
 void accept_conn(){
@@ -551,8 +569,8 @@ void accept_conn(){
         trace("Connect failed");
     }
     else{
-        cout<<"Server connected to new client"<<"\n";
-        trace("Server connected to new client");
+        // cout<<"Server connected to new client"<<"\n";
+        // trace("Server connected to new client");
     }
 }
 
@@ -863,7 +881,7 @@ int unbase_decr(char* inp1,char* out1, char* key1,int len){
     int filesize = t_size;int text_len;
 
     //decrypt
-    trace("Starting Dec",len+1);
+    // trace("Starting Dec",len+1);
     text_len = decrypt(plaintext, filesize, key, iv_128,
                                 out,1,NULL);
     // free(plaintext);                                
