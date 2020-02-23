@@ -852,6 +852,7 @@ int main(int argc,char* argv[])
         trace("Build ds");
 
         read(connfd, buff, sizeof(buff));
+        printf("Received %s\n",buff);
         trace("Read data");
         if(buff[2] == '1')
         {

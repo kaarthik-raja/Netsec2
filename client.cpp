@@ -58,7 +58,7 @@ typedef struct cargs
     char my_name[20],you_name[20];
     char kdc_ip[21];
     char *inpf , *outf;
-    char my_key[9];
+    char my_key[17];
     int Nonce;
     char my_IP[21];
 
@@ -83,11 +83,13 @@ int t_size;
 node info;
 cargs argvs;
 struct sockaddr_in my_addr, you_addr, kdc_addr; 
+int addr_len; 
+
 char choice[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890";
 char *message;
 int message_len;
 int kdc_sock , you_sock , my_sock ,sock;
-
+int opt = 1; 
 
 void handleErrors(void);
 uchar *base64(uchar *input, int length);
@@ -100,16 +102,20 @@ int sig_parser(char *sig);
 void cpy_str(char *& sig,char* &ptr);
 void generate_key();
 int register_key(void);
-void create_sock(int who);
+void create_client(int &sock,struct sockaddr_in &addr);
+void create_server();
 void Nonce_func(void);
 
 int main(int argc, char *argv[]) {
     srand(time(0));
     char buff[MAX],buff2[MAX];
-
-    memset(&my_addr, 0, sizeof(my_addr)); 
-    memset(&kdc_addr, 0, sizeof(kdc_addr)); 
-    memset(&you_addr, 0, sizeof(you_addr)); 
+    
+    char buff3[MAX] ;   //For Dummy Checks
+    
+    addr_len = sizeof(my_addr); 
+    memset(&my_addr, 0,addr_len); 
+    memset(&kdc_addr, 0, addr_len); 
+    memset(&you_addr, 0, addr_len); 
       
     char continue_ops;
 
@@ -124,60 +130,22 @@ int main(int argc, char *argv[]) {
     generate_key();
 
     if(register_key()){
-        printf("%s\n","Error in registreation" );
+        printf("%s\n","Error in registration" );
         return 0;
     }
 
     printf("\nContinue with sending message(y/n): ");
     scanf("%c",&continue_ops);
 
-
-    if ( bind(sock, (const struct sockaddr *)&my_addr,sizeof(my_addr)) < 0 ) 
-    { 
-        perror("bind failed");
-        exit(EXIT_FAILURE); 
+    if(continue_ops == 'n'){
+        close(kdc_sock);
+        return 0;
     }
-    // if (listen(sockfd, 5) != 0) 
-    // { 
-    //     printf("Listen failed...\n"); 
-    //     trace("Listen failed...\n");
-    //     exit(0); 
-    // } 
-    else
-    {
-        printf("Server listening..\n"); 
-        trace("Server listening..\n");
-    }
-    // if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) 
-    // { 
-    //     printf("\n Socket creation error \n"); 
-    //     return -1; 
-    // }  
-    sock = sock;
-    if (connect(sock, (struct sockaddr *)&kdc_addr, sizeof(kdc_addr)) < 0) 
-    { 
-        printf("\nConnection Failed \n"); 
-        return -1; 
-    } 
-    char hello[] = "hello ";
-    send(sock , hello , strlen(hello) , 0 ); 
-    printf("Hello message sent\n"); 
-    read( sock , buff, 1024); 
-    printf("%s\n",buff ); 
-    return 0; 
-
-///////////////////////////////
-
-
-
-    unsigned int len = sizeof(you_addr);
-
-
 
     if(argvs.SR){
 
         //STEP 1
-
+        create_client(kdc_sock,kdc_addr);
         strcpy(buff,argvs.my_name );
         strcat(buff,"#" );
         strcat(buff,argvs.you_name );
@@ -186,18 +154,20 @@ int main(int argc, char *argv[]) {
         argvs.Nonce = rand()%1000000;
         string s = to_string(argvs.Nonce);
         strcat(buff,s.c_str());//Nonce
-        strcat(buff,"#" );
-
+        // strcat(buff,"#" );
+        printf("E_ka %s\n",buff );
         encr_base(buff,buff2,argvs.my_key ,strlen(buff) );
-
+        printf("encrpyt %s -> %s -- \n",buff,buff2 );
         strcpy(buff,"305#" );
         strcat(buff, buff2 );
         strcat(buff,"#" );
         strcat(buff,argvs.my_name );
-        strcat(buff,"#" );
+        // strcat(buff,"#" );
 
+        printf("Sending to KDC %s\n", buff);
         send(kdc_sock , buff, strlen(buff ),0 );
         read( kdc_sock , buff, 1024); 
+        close(kdc_sock);
 
         printf("Received for 305 %s\n", buff);
 
@@ -212,7 +182,7 @@ int main(int argc, char *argv[]) {
         strcat(buff,"#" );
 
         //you_addr send
-        create_sock(2);
+        create_client(you_sock,you_addr);
         send(you_sock , buff, strlen(buff ) ,0);
         read(you_sock , buff, 1024); 
 
@@ -269,29 +239,7 @@ int main(int argc, char *argv[]) {
     }
 
 
-
-    while(1)
-    {
-        int connfd = accept(sock,(sockaddr*)&you_addr,&len);
-        if(connfd < 0)
-        {
-            cout<<"Connect failed"<<"\n";
-            trace("Connect failed");
-        }
-        else
-        {
-            cout<<"Server connected to new client"<<"\n";
-            trace("Server connected to new client");
-        }
-        trace("Build ds");
-
-        read(connfd, buff, sizeof(buff));
-        trace("Read data");
-
-        trace("Wrote ds");
-    }
-
-    close(sockfd);
+    close(sock);
     return 0;
 }
 
@@ -364,7 +312,7 @@ int parser(int argc, char *argv[]){
 }
 void cpy_str(char *& sig,char* ptr){
     int i=0;
-    for(i=0;sig[i]!='#';i++ );
+    for(i=0;sig[i]!='#' && sig[i]!='\0';i++ );
     sig[i]='\0'; i++;
     for(int j=0;j<i;j++)ptr[j] = sig[j];
     // ptr = sig;
@@ -386,6 +334,7 @@ int sig_parser(char *sig){
         int i;
         for(i=0;sig[i]!='#';i++ );
         sig[i]='\0';
+        printf("Signal compared %s\n",sig );
         return strcmp(sig ,argvs.my_name);
     }
     else{
@@ -447,71 +396,114 @@ int sig_parser(char *sig){
 }
 
 void generate_key(void){
-    for (int i = 0; i < 8; ++i)
+    for (int i = 0; i < 12; ++i)
     {
         argvs.my_key[i] = choice[rand()%62];
     }
-    argvs.my_key[9] = '\0';
+    for (int i = 12; i < 16; ++i)
+    {
+        argvs.my_key[i] = '#';
+    }
+    argvs.my_key[16] = '\0';
     printf("%s\n",argvs.my_key);
 
 }
 
 int register_key(void){
-    if ( (kdc_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) { 
+
+    create_client(kdc_sock,kdc_addr);
+    
+    char buff[2000];
+    strcpy(buff,"301#");
+    strcat(buff,argvs.my_IP);
+    strcat(buff,"#");
+    strcat(buff,to_string(argvs.my_port).c_str());
+    strcat(buff,"#");
+    strcat(buff,argvs.my_key);
+    strcat(buff,"#");
+    strcat(buff,argvs.my_name);
+    strcat(buff,"#");
+
+    printf("Sending to KDC %s\n",buff );
+
+    send(kdc_sock, buff, strlen(buff),0);
+    printf("Sent\n");
+    read(kdc_sock,buff ,1024);
+    printf("Received %s\n",buff);
+
+    close(kdc_sock);
+    return sig_parser(buff);
+
+}
+
+void  create_client(int &sock,struct sockaddr_in &addr){
+    if ( (sock = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) { 
         perror("socket creation failed"); 
         trace("socket creation failed");
         exit(EXIT_FAILURE); 
     } 
-
-    // Bind the socket with the server address 
-    if ( bind(kdc_sock, (const struct sockaddr *)&my_addr,sizeof(my_addr)) < 0 ) 
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, 
+                                                  &opt, sizeof(opt))) 
+    { 
+        perror("setsockopt"); 
+        exit(EXIT_FAILURE); 
+    } 
+    if ( bind(sock, (const struct sockaddr *)&my_addr,addr_len) < 0 ) 
     { 
         perror("bind failed");
         exit(EXIT_FAILURE); 
     }
 
-    if (connect(kdc_sock, (struct sockaddr *)&kdc_addr, sizeof(kdc_addr)) < 0) 
+    if (connect(sock, (struct sockaddr *)&addr, addr_len) < 0) 
     { 
         printf("\nConnection Failed \n"); 
-        return -1; 
+        return ; 
+    } 
+}
+
+void  create_server(){
+    if ( (sock = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) { 
+        perror("socket creation failed"); 
+        trace("socket creation failed");
+        exit(EXIT_FAILURE); 
     } 
 
+    if ( bind(sock, (const struct sockaddr *)&my_addr,addr_len) < 0 ){ 
+        perror("bind failed");
+        exit(EXIT_FAILURE); 
+    }
 
-    
-    char buff[2000];
-    strcpy(buff,"301#");
-    strcpy(buff,argvs.my_IP);
-    strcpy(buff,"#");
-    strcpy(buff,to_string(argvs.my_port).c_str());
-    strcpy(buff,"#");
-    strcpy(buff,argvs.my_key);
-    strcpy(buff,"#");
-    strcpy(buff,argvs.my_name);
-    strcpy(buff,"#");
-
-
-    send(kdc_sock, buff, strlen(buff),0);
-    read(kdc_sock,buff ,1024);
-    sig_parser(buff);
+    if (listen(sock, 5) != 0){ 
+        printf("Listen failed...\n"); 
+        trace("Listen failed...\n");
+        exit(0); 
+    } 
+    else{
+        printf("Server listening..\n"); 
+        trace("Server listening..\n");
+    }
+    you_sock = accept(sock,(sockaddr*)&you_addr,(socklen_t*)&addr_len);
+    if(you_sock < 0){
+        cout<<"Connect failed"<<"\n";
+        trace("Connect failed");
+    }
+    else{
+        cout<<"Server connected to new client"<<"\n";
+        trace("Server connected to new client");
+    }
 }
 
-void  create_sock(int who){
-
-
-}
 void Nonce_func(void){
     argvs.Nonce +=1;
 }
 
 
-void handleErrors(void)
-{
+void handleErrors(void){
     ERR_print_errors_fp(stderr);
     abort();
 }
 
-uchar *base64(uchar *input, int length)
-{
+uchar *base64(uchar *input, int length){
     BIO *bmem, *b64;
     BUF_MEM *bptr;
     
@@ -531,8 +523,7 @@ uchar *base64(uchar *input, int length)
     return buff;
 }
 
-uchar *unbase64(uchar *input, int length,int rl)
-{
+uchar *unbase64(uchar *input, int length,int rl){
     BIO *b64, *bmem;
     
     uchar *buffer = (uchar *)malloc(length);
@@ -566,8 +557,7 @@ uchar *unbase64(uchar *input, int length,int rl)
     return buffer;
 }
 
-int encrypt(uchar *plaintext, int plaintext_len, uchar *key, uchar *iv, uchar *ciphertext, int alg, uchar* tag)
-{
+int encrypt(uchar *plaintext, int plaintext_len, uchar *key, uchar *iv, uchar *ciphertext, int alg, uchar* tag){
     EVP_CIPHER_CTX *ctx;
 
     int len;
@@ -672,8 +662,7 @@ int encrypt(uchar *plaintext, int plaintext_len, uchar *key, uchar *iv, uchar *c
     return ciphertext_len;
 }
 
-int decrypt(uchar *ciphertext, int ciphertext_len, uchar *key, uchar *iv, uchar *plaintext, int alg, uchar* tag)
-{
+int decrypt(uchar *ciphertext, int ciphertext_len, uchar *key, uchar *iv, uchar *plaintext, int alg, uchar* tag){
     EVP_CIPHER_CTX *ctx;
 
     int len;
@@ -774,8 +763,7 @@ int decrypt(uchar *ciphertext, int ciphertext_len, uchar *key, uchar *iv, uchar 
 }
 
 
-int encr_base(char* inp1,char* out1, char* key1,int len)
-{
+int encr_base(char* inp1,char* out1, char* key1,int len){
     uchar* inp = (uchar*)inp1;
     uchar* out = (uchar*)out1; 
     uchar* key = (uchar*)key1;
@@ -796,8 +784,7 @@ int encr_base(char* inp1,char* out1, char* key1,int len)
     return c;
 }
 
-int unbase_decr(char* inp1,char* out1, char* key1,int len)
-{
+int unbase_decr(char* inp1,char* out1, char* key1,int len){
     uchar* inp = (uchar*)inp1;
     uchar* out = (uchar*)out1; 
     uchar* key = (uchar*)key1;
@@ -816,7 +803,7 @@ int unbase_decr(char* inp1,char* out1, char* key1,int len)
     trace("Starting Dec",len+1);
     text_len = decrypt(plaintext, filesize, key, iv_128,
                                 out,1,NULL);
-    free(plaintext);                                
+    // free(plaintext);                                
 
     out[text_len]='\0';
     return text_len;
